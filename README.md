@@ -1,5 +1,14 @@
 # RPEval: Role-Playing Evaluation for Large Language Models
 
+<p align="center">
+  <a href="https://yelboudouri-rpeval.static.hf.space">
+    <img src="https://img.shields.io/badge/HuggingFace-Leaderboard-orange" alt="HuggingFace Leaderboard">
+  </a>
+  <a href="https://arxiv.org/abs/2505.13157">
+    <img src="https://img.shields.io/badge/ArXiv-Paper-red" alt="ArXiv Paper">
+  </a>
+</p>
+
 *This repository contains code and data referenced in: ["Role-Playing Evaluation for Large Language Models"](https://arxiv.org/abs/2505.13157).*
 
 Large Language Models (LLMs) demonstrate a notable capacity for adopting personas and engaging in role-playing. However,

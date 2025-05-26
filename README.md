@@ -1,10 +1,10 @@
 # RPEval: Role-Playing Evaluation for Large Language Models
 
 <p align="center">
-  <a href="https://yelboudouri-rpeval.static.hf.space">
+  <a href="https://yelboudouri-rpeval.static.hf.space" target="_blank">
     <img src="https://img.shields.io/badge/HuggingFace-Leaderboard-orange" alt="HuggingFace Leaderboard">
   </a>
-  <a href="https://arxiv.org/abs/2505.13157">
+  <a href="https://arxiv.org/abs/2505.13157" target="_blank">
     <img src="https://img.shields.io/badge/ArXiv-Paper-red" alt="ArXiv Paper">
   </a>
 </p>

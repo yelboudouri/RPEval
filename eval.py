@@ -117,7 +117,7 @@ if __name__ == "__main__":
                 try:
                     response = EmotionResponse.model_validate_json(response)
                     results["emotion"].append(
-                        response.emotion == entry["checks"][0]["args"]
+                        response.emotion == entry["checks"][0]["args"][0]
                     )
                 except pydantic.ValidationError:
                     results["emotion"].append(False)
@@ -144,7 +144,7 @@ if __name__ == "__main__":
                 try:
                     response = DecisionResponse.model_validate_json(response)
                     results["decision"].append(
-                        response.decision == entry["checks"][0]["args"]
+                        response.decision == entry["checks"][0]["args"][0]
                     )
                 except pydantic.ValidationError:
                     results["decision"].append(False)

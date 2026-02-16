@@ -41,10 +41,10 @@ To test other models, simply change the `--responses-file` argument to the appro
 To run RPEval on a different model:
 
 ```bash
-python eval.py --provider="<provider_name>" --model="<model_name>"
+python eval.py --model="<model_name>"
 ```
 
-RPEval uses [SwitchAI](https://github.com/yelboudouri/SwitchAI) under the hood. Ensure your API key is properly configured and the target model is supported.
+RPEval uses [Open Router]([https://github.com/yelboudouri/SwitchAI](https://openrouter.ai/)) under the hood. Ensure your API key is properly configured and the target model is supported.
 
 
 ## Reference

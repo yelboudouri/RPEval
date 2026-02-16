@@ -72,7 +72,7 @@ if __name__ == "__main__":
     )
 
     if args.responses_file == "":
-        args.responses_file = f"responses_{args.provider}_{args.model_name.replace('/', '_')}.jsonl"
+        args.responses_file = f"responses_{args.model_name.replace('/', '_')}.jsonl"
     file_path = Path(args.responses_file)
     file_path.touch(exist_ok=True)
 

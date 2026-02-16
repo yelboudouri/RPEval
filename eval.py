@@ -1,11 +1,12 @@
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Literal
 
 import pydantic
 from pydantic import BaseModel
-from switchai import SwitchAI
+from openai import OpenAI
 from tqdm import tqdm
 
 
@@ -58,23 +59,27 @@ if __name__ == "__main__":
     parser.add_argument(
         "--provider",
         type=str,
-        default="ollama",
+        default="openrouter",
         help="Provider of the model to evaluate.",
     )
 
     parser.add_argument(
         "--model-name",
         type=str,
-        default="llama3.2",
-        help="Name of the model to evaluate.",
+        default="meta-llama/llama-3.2-3b-instruct",
+        help="Name of the model to evaluate (e.g., meta-llama/llama-3.2-3b-instruct for OpenRouter).",
     )
 
     args = parser.parse_args()
 
-    client = SwitchAI(provider=args.provider, model_name=args.model_name)
+    # Initialize OpenRouter Client via OpenAI SDK
+    client = OpenAI(
+        api_key=os.getenv("OPEN_ROUTER_API_KEY"),
+        base_url="https://openrouter.ai/api/v1"
+    )
 
     if args.responses_file == "":
-        args.responses_file = f"responses_{args.provider}_{args.model_name}.jsonl"
+        args.responses_file = f"responses_{args.provider}_{args.model_name.replace('/', '_')}.jsonl"
     file_path = Path(args.responses_file)
     file_path.touch(exist_ok=True)
 
@@ -97,83 +102,113 @@ if __name__ == "__main__":
 
             if entry["type"] == "emotion":
                 if not entry["id"] in responses:
-                    response = client.chat(
-                        entry["context"], response_format=EmotionResponse
+                    response = client.chat.completions.create(
+                        model=args.model_name,
+                        messages=[{"role": "user", "content": entry["context"]}],
+                        response_format={
+                            "type": "json_schema",
+                            "json_schema": {
+                                "name": "emotion_response",
+                                "schema": EmotionResponse.model_json_schema(),
+                                "strict": True
+                            }
+                        }
                     )
-                    responses[entry["id"]] = response.message.content
+                    response_text = response.choices[0].message.content
+                    responses[entry["id"]] = response_text
                     with open(args.responses_file, "a") as f:
                         f.write(
                             json.dumps(
                                 {
                                     "id": entry["id"],
-                                    "response": response.message.content,
+                                    "response": response_text,
                                 }
                             )
                             + "\n"
                         )
 
-                response = responses[entry["id"]]
+                response_text = responses[entry["id"]]
 
                 try:
-                    response = EmotionResponse.model_validate_json(response)
+                    parsed_response = EmotionResponse.model_validate_json(response_text)
                     results["emotion"].append(
-                        response.emotion == entry["checks"][0]["args"][0]
+                        parsed_response.emotion == entry["checks"][0]["args"][0]
                     )
                 except pydantic.ValidationError:
                     results["emotion"].append(False)
 
             if entry["type"] == "decision":
                 if not entry["id"] in responses:
-                    response = client.chat(
-                        entry["context"], response_format=DecisionResponse
+                    response = client.chat.completions.create(
+                        model=args.model_name,
+                        messages=[{"role": "user", "content": entry["context"]}],
+                        response_format={
+                            "type": "json_schema",
+                            "json_schema": {
+                                "name": "decision_response",
+                                "schema": DecisionResponse.model_json_schema(),
+                                "strict": True
+                            }
+                        }
                     )
-                    responses[entry["id"]] = response.message.content
+                    response_text = response.choices[0].message.content
+                    responses[entry["id"]] = response_text
                     with open(args.responses_file, "a") as f:
                         f.write(
                             json.dumps(
                                 {
                                     "id": entry["id"],
-                                    "response": response.message.content,
+                                    "response": response_text,
                                 }
                             )
                             + "\n"
                         )
 
-                response = responses[entry["id"]]
+                response_text = responses[entry["id"]]
 
                 try:
-                    response = DecisionResponse.model_validate_json(response)
+                    parsed_response = DecisionResponse.model_validate_json(response_text)
                     results["decision"].append(
-                        response.decision == entry["checks"][0]["args"][0]
+                        parsed_response.decision == entry["checks"][0]["args"][0]
                     )
                 except pydantic.ValidationError:
                     results["decision"].append(False)
 
             if entry["type"] == "in‐character":
                 if not entry["id"] in responses:
-                    response = client.chat(entry["context"])
-                    responses[entry["id"]] = response.message.content
+                    response = client.chat.completions.create(
+                        model=args.model_name,
+                        messages=[{"role": "user", "content": entry["context"]}]
+                    )
+                    response_text = response.choices[0].message.content
+                    responses[entry["id"]] = response_text
                     with open(args.responses_file, "a") as f:
                         f.write(
                             json.dumps(
                                 {
                                     "id": entry["id"],
-                                    "response": response.message.content,
+                                    "response": response_text,
                                 }
                             )
                             + "\n"
                         )
 
-                response = responses[entry["id"]]
+                response_text = responses[entry["id"]]
 
                 results["in‐character"].append(
-                    not check_contains_keywords(response, entry["checks"][0]["args"])
+                    not check_contains_keywords(response_text, entry["checks"][0]["args"])
                 )
 
-    in_character_avg = sum(results["in‐character"]) / len(results["in‐character"])
-    decision_avg = sum(results["decision"]) / len(results["decision"])
-    emotion_avg = sum(results["emotion"]) / len(results["emotion"])
-    average_of_averages = (in_character_avg + decision_avg + emotion_avg) / 3
+    in_character_avg = sum(results["in‐character"]) / len(results["in‐character"]) if results["in‐character"] else 0
+    decision_avg = sum(results["decision"]) / len(results["decision"]) if results["decision"] else 0
+    emotion_avg = sum(results["emotion"]) / len(results["emotion"]) if results["emotion"] else 0
+    
+    overall_count = (
+        len(results["in‐character"])
+        + len(results["decision"])
+        + len(results["emotion"])
+    )
+    average_of_averages = (in_character_avg + decision_avg + emotion_avg) / 3 if overall_count > 0 else 0
 
     # Print report
     print(f"{'Category':<50}{'Average':<15}{'Count':<10}")
@@ -188,9 +223,4 @@ if __name__ == "__main__":
         f"{'Emotional Understanding':<50}{emotion_avg:<15.4f}{len(results['emotion']):<10}"
     )
     print("-" * 70)
-    overall_count = (
-        len(results["in‐character"])
-        + len(results["decision"])
-        + len(results["emotion"])
-    )
     print(f"{'Overall Average':<50}{average_of_averages:<15.4f}{overall_count:<10}")

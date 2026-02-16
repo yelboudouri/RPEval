@@ -57,13 +57,6 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--provider",
-        type=str,
-        default="openrouter",
-        help="Provider of the model to evaluate.",
-    )
-
-    parser.add_argument(
         "--model-name",
         type=str,
         default="meta-llama/llama-3.2-3b-instruct",

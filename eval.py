@@ -1,12 +1,11 @@
 import argparse
 import json
-import os
 from pathlib import Path
 from typing import Literal
 
 import pydantic
+from litellm import completion
 from pydantic import BaseModel
-from openai import OpenAI
 from tqdm import tqdm
 
 
@@ -57,19 +56,20 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--provider",
+        type=str,
+        default="ollama",
+        help="Provider of the model to evaluate.",
+    )
+
+    parser.add_argument(
         "--model-name",
         type=str,
-        default="meta-llama/llama-3.2-3b-instruct",
-        help="Name of the model to evaluate (e.g., meta-llama/llama-3.2-3b-instruct for OpenRouter).",
+        default="qwen:0.5b",
+        help="Name of the model to evaluate.",
     )
 
     args = parser.parse_args()
-
-    # Initialize OpenRouter Client via OpenAI SDK
-    client = OpenAI(
-        api_key=os.getenv("OPEN_ROUTER_API_KEY"),
-        base_url="https://openrouter.ai/api/v1"
-    )
 
     if args.responses_file == "":
         args.responses_file = f"responses_{args.model_name.replace('/', '_')}.jsonl"
@@ -95,17 +95,17 @@ if __name__ == "__main__":
 
             if entry["type"] == "emotion":
                 if not entry["id"] in responses:
-                    response = client.chat.completions.create(
-                        model=args.model_name,
-                        messages=[{"role": "user", "content": entry["context"]}],
+                    response = completion(
+                        model=f"{args.provider}/{args.model_name}",
+                        messages=entry["context"],
                         response_format={
                             "type": "json_schema",
                             "json_schema": {
                                 "name": "emotion_response",
                                 "schema": EmotionResponse.model_json_schema(),
-                                "strict": True
-                            }
-                        }
+                                "strict": True,
+                            },
+                        },
                     )
                     response_text = response.choices[0].message.content
                     responses[entry["id"]] = response_text
@@ -132,17 +132,17 @@ if __name__ == "__main__":
 
             if entry["type"] == "decision":
                 if not entry["id"] in responses:
-                    response = client.chat.completions.create(
-                        model=args.model_name,
-                        messages=[{"role": "user", "content": entry["context"]}],
+                    response = completion(
+                        model=f"{args.provider}/{args.model_name}",
+                        messages=entry["context"],
                         response_format={
                             "type": "json_schema",
                             "json_schema": {
                                 "name": "decision_response",
                                 "schema": DecisionResponse.model_json_schema(),
-                                "strict": True
-                            }
-                        }
+                                "strict": True,
+                            },
+                        },
                     )
                     response_text = response.choices[0].message.content
                     responses[entry["id"]] = response_text
@@ -160,7 +160,9 @@ if __name__ == "__main__":
                 response_text = responses[entry["id"]]
 
                 try:
-                    parsed_response = DecisionResponse.model_validate_json(response_text)
+                    parsed_response = DecisionResponse.model_validate_json(
+                        response_text
+                    )
                     results["decision"].append(
                         parsed_response.decision == entry["checks"][0]["args"][0]
                     )
@@ -169,9 +171,9 @@ if __name__ == "__main__":
 
             if entry["type"] == "in‐character":
                 if not entry["id"] in responses:
-                    response = client.chat.completions.create(
-                        model=args.model_name,
-                        messages=[{"role": "user", "content": entry["context"]}]
+                    response = completion(
+                        model=f"{args.provider}/{args.model_name}",
+                        messages=entry["context"],
                     )
                     response_text = response.choices[0].message.content
                     responses[entry["id"]] = response_text
@@ -189,19 +191,33 @@ if __name__ == "__main__":
                 response_text = responses[entry["id"]]
 
                 results["in‐character"].append(
-                    not check_contains_keywords(response_text, entry["checks"][0]["args"])
+                    not check_contains_keywords(
+                        response_text, entry["checks"][0]["args"]
+                    )
                 )
 
-    in_character_avg = sum(results["in‐character"]) / len(results["in‐character"]) if results["in‐character"] else 0
-    decision_avg = sum(results["decision"]) / len(results["decision"]) if results["decision"] else 0
-    emotion_avg = sum(results["emotion"]) / len(results["emotion"]) if results["emotion"] else 0
-    
+    in_character_avg = (
+        sum(results["in‐character"]) / len(results["in‐character"])
+        if results["in‐character"]
+        else 0
+    )
+    decision_avg = (
+        sum(results["decision"]) / len(results["decision"])
+        if results["decision"]
+        else 0
+    )
+    emotion_avg = (
+        sum(results["emotion"]) / len(results["emotion"]) if results["emotion"] else 0
+    )
+
     overall_count = (
         len(results["in‐character"])
         + len(results["decision"])
         + len(results["emotion"])
     )
-    average_of_averages = (in_character_avg + decision_avg + emotion_avg) / 3 if overall_count > 0 else 0
+    average_of_averages = (
+        (in_character_avg + decision_avg + emotion_avg) / 3 if overall_count > 0 else 0
+    )
 
     # Print report
     print(f"{'Category':<50}{'Average':<15}{'Count':<10}")

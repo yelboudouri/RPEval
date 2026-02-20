@@ -44,7 +44,7 @@ To run RPEval on a different model:
 python eval.py --model="<model_name>"
 ```
 
-RPEval uses [Open Router]([https://github.com/yelboudouri/SwitchAI](https://openrouter.ai/)) under the hood. Ensure your API key is properly configured and the target model is supported.
+RPEval uses [LiteLLM](https://docs.litellm.ai/docs/) under the hood. Ensure your API key is properly configured and the target model is supported.
 
 
 ## Reference

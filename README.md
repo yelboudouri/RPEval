@@ -41,7 +41,7 @@ To test other models, simply change the `--responses-file` argument to the appro
 To run RPEval on a different model:
 
 ```bash
-python eval.py --model="<model_name>"
+python eval.py --provider="<provider_name>" --model="<model_name>"
 ```
 
 RPEval uses [LiteLLM](https://docs.litellm.ai/docs/) under the hood. Ensure your API key is properly configured and the target model is supported.

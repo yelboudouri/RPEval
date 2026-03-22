@@ -69,6 +69,20 @@ if __name__ == "__main__":
         help="Name of the model to evaluate.",
     )
 
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=1.0,
+        help="Sampling temperature for the model (default: 0.7).",
+    )
+
+    parser.add_argument(
+        "--top-p",
+        type=float,
+        default=0.9,
+        help="Top-p (nucleus sampling) for the model (default: 0.9).",
+    )
+
     args = parser.parse_args()
 
     if args.responses_file == "":
@@ -98,6 +112,8 @@ if __name__ == "__main__":
                     response = completion(
                         model=f"{args.provider}/{args.model_name}",
                         messages=entry["context"],
+                        temperature=args.temperature,
+                        top_p=args.top_p,
                         response_format={
                             "type": "json_schema",
                             "json_schema": {
@@ -135,6 +151,8 @@ if __name__ == "__main__":
                     response = completion(
                         model=f"{args.provider}/{args.model_name}",
                         messages=entry["context"],
+                        temperature=args.temperature,
+                        top_p=args.top_p,
                         response_format={
                             "type": "json_schema",
                             "json_schema": {
@@ -174,6 +192,8 @@ if __name__ == "__main__":
                     response = completion(
                         model=f"{args.provider}/{args.model_name}",
                         messages=entry["context"],
+                        temperature=args.temperature,
+                        top_p=args.top_p,
                     )
                     response_text = response.choices[0].message.content
                     responses[entry["id"]] = response_text
